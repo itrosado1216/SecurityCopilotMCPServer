@@ -317,6 +317,7 @@ class SecurityCopilotClient:
         import time
         
         # Poll for results
+        evaluation_data = None
         attempts = 0
         while attempts < max_attempts:
             attempts += 1
