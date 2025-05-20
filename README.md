@@ -81,7 +81,8 @@ python server.py --run-tests
 
 The MCP server provides the following tools:
 
-1. **run_sentinel_query**: Execute KQL queries in Sentinel
+1. **run_sentinel_query**: Execute KQL queries in Sentinel. Accepts an optional
+   `to_dataframe` parameter to skip DataFrame creation when set to `False`.
 2. **get_skillsets**: List skillsets in Security Copilot
 3. **upload_plugin**: Upload or update a skillset/plugin
 4. **run_prompt**: Run a prompt or skill in Security Copilot

@@ -3,6 +3,7 @@ import requests
 from azure.identity import InteractiveBrowserCredential, ClientSecretCredential, DefaultAzureCredential
 import yaml
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Get logger
 logger = logging.getLogger('SecurityCopilotMCP')
@@ -77,26 +78,26 @@ class SecurityCopilotClient:
                 continue
             filtered_skillsets.append(skillset)
         
-        if full_response:   
-            # For each skillset, get its skills
+        if full_response:
+            # Fetch skills for each skillset in parallel to reduce latency
             skillsets_with_skills = []
-            for skillset in filtered_skillsets:
-                # Apply filter if provided
-                
-                    
-                # Get skills for this skillset
+
+            def fetch_skills(skillset):
                 skills_url = f"{self.base_url}/geo/{self.region}/skillsets/{skillset['name']}/skills"
-                skills_response = requests.get(skills_url, headers=headers)
-                
-                if skills_response.status_code == 200:
+                try:
+                    skills_response = requests.get(skills_url, headers=headers)
+                    skills_response.raise_for_status()
                     skills_data = skills_response.json()
-                    # Add skills to skillset
                     skillset['skills'] = skills_data.get('value', [])
-                else:
-                    # If skills can't be retrieved, add empty list
+                except Exception as e:
+                    logger.error(f"Failed to fetch skills for {skillset['name']}: {e}")
                     skillset['skills'] = []
-                    
-                skillsets_with_skills.append(skillset)
+                return skillset
+
+            with ThreadPoolExecutor() as executor:
+                futures = [executor.submit(fetch_skills, s) for s in filtered_skillsets]
+                for future in as_completed(futures):
+                    skillsets_with_skills.append(future.result())
             
             return {
                 "count": len(skillsets_with_skills),
