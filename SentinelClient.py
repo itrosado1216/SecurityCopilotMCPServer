@@ -23,8 +23,16 @@ class SentinelClient:
         self.credential=credential
         self.logs_client=LogsQueryClient(self.credential)
 
-    def run_query(self,query,printresults=False):
-        results_object={}
+    def run_query(self, query, printresults=False, to_dataframe=True):
+        """Run a KQL query and return the results.
+
+        Args:
+            query (str): KQL query to execute.
+            printresults (bool): Whether to print the results.
+            to_dataframe (bool): Return results as DataFrame if True, otherwise
+                return a list of dictionaries without creating a DataFrame.
+        """
+        results_object = {}
         try:
             response = self.logs_client.query_workspace(
                 workspace_id=self.workspace_id,
@@ -38,10 +46,16 @@ class SentinelClient:
             elif response.status == LogsQueryStatus.SUCCESS:
                 data = response.tables
             for table in data:
-                df = pd.DataFrame(data=table.rows, columns=table.columns)
-                if printresults:
-                    print(df)
-                results_object={"status":"success","result":df.to_dict(orient="records")}
+                if to_dataframe:
+                    df = pd.DataFrame(data=table.rows, columns=table.columns)
+                    if printresults:
+                        print(df)
+                    results = df.to_dict(orient="records")
+                else:
+                    results = [dict(zip(table.columns, row)) for row in table.rows]
+                    if printresults:
+                        print(results)
+                results_object = {"status": "success", "result": results}
         except HttpResponseError as err:
             results_object={"status":"error","result":err}
         return results_object
